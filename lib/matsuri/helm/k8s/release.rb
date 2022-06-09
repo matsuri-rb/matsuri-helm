@@ -83,7 +83,25 @@ module Matsuri
           }
         end
 
-        let(:values_args)   { normalized_values_paths.map { |p| "-f #{p}" } }
+        let(:values_args)             { normalized_values_paths.map { |p| "-f #{p}" } }
+        let(:normalized_values_paths) { value_files.map(&method(:normalize_value_path)) }
+        let(:values_search_path) do
+          [
+            File.join(::Matsuri::Config.helm.releases_path, release_name),
+            ::Matsuri::Config.helm.releases_path, release_name
+          ]
+        end
+
+        def normalize_value_path(candidate_path)
+          raise_if_not_found = proc do
+            Matsuri.log :fatal,
+              "Unable to find #{candidate path} in search paths:\n#{values_search_path.join("\n")}"
+          end
+
+          values_search_path.
+            map { |p| File.join(p, candidate_path) }.
+            find(raise_if_not_found) { |f| File.exists?(f) }
+        end
 
         # If a flag value is true, then just use that flag as the arg
         # Otherwise, set it as "--flag arg"
