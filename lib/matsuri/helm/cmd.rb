@@ -25,8 +25,11 @@ module Matsuri
 
         included do
           desc 'helm/release NAME', 'show a helm release'
-          show_cmd_for 'helm_release'
-
+          define_method(:helm_release) do |name, dry_run = false|
+            resource = Matsuri::Registry.fetch_or_load(:helm_release, name).new(dry_run: dry_run)
+            resource.show!
+          end
+          map 'helm/release': :helm_release
         end
       end
 
@@ -57,5 +60,5 @@ Matsuri::Cmds::Apply.send(:include, Matsuri::Helm::Cmd::Apply)
 # Matsuri::Cmds::Create.send(:include, Matsuri::Helm::Cmd::Create)
 # Matsuri::Cmds::Delete.send(:include, Matsuri::Helm::Cmd::Delete)
 # Matsuri::Cmds::Recreate.send(:include, Matsuri::Helm::Cmd::Recreate)
-# Matsuri::Cmds::Show.send(:include, Matsuri::Helm::Cmd::Show)
+Matsuri::Cmds::Show.send(:include, Matsuri::Helm::Cmd::Show)
 # Matsuri::Cmds::Diff.send(:include, Matsuri::Helm::Cmd::Diff)

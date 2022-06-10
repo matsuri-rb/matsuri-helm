@@ -55,6 +55,18 @@ module Matsuri
           ].flatten.compact
         end
 
+        let(:template_args) do
+          [
+            release_name,
+            helm_chart,
+            helm_flags_to_args(chart_args_map),
+            helm_flags_to_args(template_args_map),
+            context_args,
+            values_args,
+            helm_set_values_to_args(override_values)
+          ].flatten.compact
+        end
+
         let(:chart_args_map) do
           {
             "--version"           => chart_version
@@ -144,6 +156,21 @@ module Matsuri
             map { |(k,v)| "--set #{k}=#{v}" }
         end
 
+        def helm_template_cmd(args)
+          final_args = args.join(" \\\n  ")
+          "helm template \\\n  #{final_args}"
+        end
+
+        def helm_template(args, options = {})
+          shell_out(helm_template_cmd(args), options)
+        end
+
+        def helm_template!(args, options = {})
+          helm_add_repo!
+          helm_update!
+          shell_out!(helm_upgrade_cmd(args), options)
+        end
+
         def helm_upgrade_cmd(args)
           final_args = args.join(" \\\n  ")
           "helm upgrade \\\n  #{final_args}"
@@ -157,6 +184,11 @@ module Matsuri
           helm_add_repo!
           helm_update!
           shell_out!(helm_upgrade_cmd(args), options)
+        end
+
+        def show!
+          puts "Generate manifests for helm release #{name}".color(:yellow).bright if config.verbose
+          helm_template!(template_args)
         end
 
         def apply!
