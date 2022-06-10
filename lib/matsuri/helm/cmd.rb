@@ -12,8 +12,12 @@ module Matsuri
 
         included do
           desc 'helm/release NAME', 'apply a helm release'
-          apply_cmd_for 'helm_release'
+          define_method(:helm_release) do |name, dry_run = false|
+            apply_resource { Matsuri::Registry.fetch_or_load(:helm_release, name).new(dry_run: dry_run) }
+          end
+          map 'helm/release': :helm_release
         end
+
       end
 
       module Show

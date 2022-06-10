@@ -14,8 +14,10 @@ module Matsuri
 
         let(:release_name)     { name }
 
-        let(:helm_repo)        { Matsuri.fail 'Must define let(:helm_repo)' }
-        let(:helm_chart)       { Matsuri.fail 'Must define let(:helm_chart)' }
+        let(:helm_repo_url)    { fail NotImplementedError, 'Must define let(:helm_repo_url)' }
+        let(:helm_repo_name)   { fail NotImplementedError, 'Must define let(:helm_repo_name)' }
+        let(:helm_chart)       { "#{helm_repo_name}/#{chart_name}" }
+        let(:chart_name)       { fail NotImplementedError, 'Must define let(:chart_name)' }
         let(:chart_version)    { nil } # Override to pin version
 
         let(:namespace)        { nil } # Override to specify a namespace
@@ -23,14 +25,14 @@ module Matsuri
         let(:kube_context)     { ::Matsuri.environment }
 
         let(:override_values)  { {} }
-        let(:value_files)      { [] }
+        let(:value_files)      { fail NotImplementedError, 'Must define let(:value_files), set to [] if you do not want to value files' }
 
         ### Upgrade flags
-        let(:dry_run?)                        { options[:dry_run?] }
+        let(:dry_run?)                        { !!options[:dry_run] }
         let(:install_if_not_exists?)          { true }
         let(:dependency_update?)              { true }
         let(:create_namespace_if_not_exists?) { true }
-        let(:atonic?)                         { true }
+        let(:atomic_upgrade?)                 { true }
         let(:wait_for_readiness?)             { nil }
         let(:wait_for_jobs?)                  { nil }
         let(:cleanup_on_fail?)                { true }
@@ -46,7 +48,7 @@ module Matsuri
             helm_chart,
             helm_flags_to_args(chart_args_map),
             helm_flags_to_args(upgrade_args_map),
-            helm_flags_to_args(context_args_map),
+            context_args,
             values_args,
             helm_set_values_to_args(override_values)
           ].flatten.compact
@@ -65,21 +67,23 @@ module Matsuri
             "--repository-config" => repo_config_path
           }.compact
         end
+        let(:context_args)           { helm_flags_to_args(context_args_map) }
+        let(:formatted_context_args) { context_args.join(" \\\n  ") }
 
         let(:upgrade_args_map) do
           {
-            "--dry_run"           => dry_run?,
+            "--dry-run"           => dry_run?,
             "--install"           => install_if_not_exists?,
-            "--dependency_update" => dependency_update?,
+            "--dependency-update" => dependency_update?,
             "--create-namespace"  => create_namespace_if_not_exists?,
             "--atomic"            => atomic_upgrade?,
             "--wait"              => wait_for_readiness?,
-            "--wait-for_jobs"     => wait_for_jobs?,
-            "--cleanup_on_fail"   => cleanup_on_fail?,
+            "--wait-for-jobs"     => wait_for_jobs?,
+            "--cleanup-on-fail"   => cleanup_on_fail?,
             "--force"             => force_replace?,
-            "--skip_crds"         => skip_crds?,
-            "--reset_values"      => reset_values?,
-            "--resue_values"      => reuse_values?,
+            "--skip-crds"         => skip_crds?,
+            "--reset-values"      => reset_values?,
+            "--resue-values"      => reuse_values?,
           }
         end
 
@@ -94,8 +98,7 @@ module Matsuri
 
         def normalize_value_path(candidate_path)
           raise_if_not_found = proc do
-            Matsuri.log :fatal,
-              "Unable to find #{candidate path} in search paths:\n#{values_search_path.join("\n")}"
+            fail "Unable to find #{candidate_path} in search paths:\n  #{values_search_path.join("\n  ")}"
           end
 
           values_search_path.
@@ -126,8 +129,8 @@ module Matsuri
         end
 
         def helm_upgrade_cmd(args)
-          final_args = args.join("\\\n")
-          "helm upgrade \\\n#{final_args}"
+          final_args = args.join(" \\\n  ")
+          "helm upgrade \\\n  #{final_args}"
         end
 
         def helm_upgrade(args, options = {})
@@ -135,7 +138,22 @@ module Matsuri
         end
 
         def helm_upgrade!(args, options = {})
+          helm_add_repo!
+          helm_update!
           shell_out!(helm_upgrade_cmd(args), options)
+        end
+
+        def apply!
+          puts "Applying (create or update) helm release #{name}".color(:yellow).bright if config.verbose
+          helm_upgrade!(upgrade_args)
+        end
+
+        def helm_add_repo!()
+          shell_out!("helm repo add #{helm_repo_name} #{helm_repo_url} \\\n  #{formatted_context_args}")
+        end
+
+        def helm_update!()
+          shell_out!("helm repo update \\\n  #{formatted_context_args}")
         end
 
         class << self

@@ -2,11 +2,11 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'matsuri/traefik/version'
+require 'matsuri/helm/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "matsuri-traefik"
-  spec.version       = Matsuri::Traefik::VERSION
+  spec.name          = "matsuri-helm"
+  spec.version       = Matsuri::Helm::VERSION
   spec.authors       = ["Ho-Sheng Hsiao"]
   spec.email         = ["talktohosh@gmail.com"]
 
