@@ -40,6 +40,7 @@ module Matsuri
         let(:skip_crds?)                      { false }
         let(:reset_values?)                   { nil }
         let(:reuse_values?)                   { false }
+        let(:verify_package?)                 { nil }
 
         ### Args
         let(:upgrade_args) do
@@ -70,6 +71,20 @@ module Matsuri
         let(:context_args)           { helm_flags_to_args(context_args_map) }
         let(:formatted_context_args) { context_args.join(" \\\n  ") }
 
+        let(:template_args_map) do
+          {
+            "--dry-run"           => dry_run?,
+            "--dependency-update" => dependency_update?,
+            "--create-namespace"  => create_namespace_if_not_exists?,
+            "--atomic"            => atomic_upgrade?,
+            "--wait"              => wait_for_readiness?,
+            "--wait-for-jobs"     => wait_for_jobs?,
+            "--cleanup-on-fail"   => cleanup_on_fail?,
+            "--skip-crds"         => skip_crds?,
+            "--verify"            => verify_package?
+          }
+        end
+
         let(:upgrade_args_map) do
           {
             "--dry-run"           => dry_run?,
@@ -84,6 +99,7 @@ module Matsuri
             "--skip-crds"         => skip_crds?,
             "--reset-values"      => reset_values?,
             "--resue-values"      => reuse_values?,
+            "--verify"            => verify_package?
           }
         end
 
